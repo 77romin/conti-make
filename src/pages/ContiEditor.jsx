@@ -11,6 +11,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ArrowLeft, Download, Eye, Plus, X, GripVertical, Settings2,
   RectangleHorizontal, RectangleVertical, FileText,
+  Sparkles, BookOpen, Music, CheckCircle, XCircle,
 } from 'lucide-react';
 import { getScores, getContis, saveConti, updateConti } from '../utils/storage';
 import { generatePDF, previewPDF } from '../utils/pdfGenerator';
@@ -205,6 +206,8 @@ export default function ContiEditor() {
   const [isSaving, setIsSaving]             = useState(false);
   const [isPrinting, setIsPrinting]         = useState(false);
   const [isPrintMode, setIsPrintMode]       = useState(false); // PDF 캡처 중 UI 숨김 모드
+  const [aiRef, setAiRef]                   = useState(null);
+  const [showAiRef, setShowAiRef]           = useState(false);
 
   // 페이지별 DOM ref 배열 — PDF 캡처에 사용
   const pageRefs = useRef([]);
@@ -229,6 +232,7 @@ export default function ContiEditor() {
           layoutIdx:   idx >= 0 ? idx : 2,
         });
         setScoreIds(conti.scoreIds || []);
+        setAiRef(conti.aiRef || null);
       }
     }
   }, [id, isNew]);
@@ -362,6 +366,12 @@ export default function ContiEditor() {
         />
 
         <div className="flex items-center gap-2 ml-auto">
+          {aiRef && (
+            <button onClick={() => setShowAiRef(true)}
+              className="flex items-center gap-1.5 px-4 py-2 border border-purple-200 text-purple-700 bg-purple-50 rounded-lg text-sm font-medium hover:bg-purple-100">
+              <Sparkles size={15} /> AI 레퍼런스
+            </button>
+          )}
           <button onClick={handleSave} disabled={isSaving}
             className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 disabled:opacity-50">
             {isSaving ? '저장 중…' : '저장'}
@@ -497,6 +507,87 @@ export default function ContiEditor() {
           </DndContext>
         </div>
       </div>
+
+      {/* ── AI 레퍼런스 모달 ── */}
+      {showAiRef && aiRef && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex items-center gap-3 px-6 py-4 border-b flex-shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-t-2xl">
+              <Sparkles size={20} className="text-white" />
+              <h2 className="font-bold text-lg text-white flex-1">AI 콘티 레퍼런스</h2>
+              <button onClick={() => setShowAiRef(false)}>
+                <X size={20} className="text-white/70 hover:text-white" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-6 space-y-4">
+              <div className="bg-purple-50 rounded-xl px-4 py-3">
+                <p className="font-bold text-purple-800 text-base">{aiRef.title}</p>
+                {aiRef.bibleRef && (
+                  <p className="text-xs text-purple-600 mt-0.5 flex items-center gap-1">
+                    <BookOpen size={12} /> {aiRef.bibleRef}
+                  </p>
+                )}
+                <p className="text-sm text-purple-700 mt-1">{aiRef.theme}</p>
+              </div>
+
+              <div className="space-y-3">
+                {aiRef.sections.map((section, si) => (
+                  <div key={si} className="border border-slate-100 rounded-xl overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {section.hasSongs
+                          ? <Music size={14} className="text-indigo-500" />
+                          : <span className="text-slate-400 text-xs">🙏</span>
+                        }
+                        <span className="text-sm font-semibold text-slate-700">{section.name}</span>
+                      </div>
+                      {section.duration && (
+                        <span className="text-xs text-slate-400">{section.duration}</span>
+                      )}
+                    </div>
+                    {section.hasSongs && section.songs.length > 0 && (
+                      <div className="divide-y divide-slate-50">
+                        {section.songs.map((song, gi) => (
+                          <div key={gi} className="px-4 py-3 flex items-start gap-3">
+                            {song.inLibrary
+                              ? <CheckCircle size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                              : <XCircle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                            }
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-slate-800">{song.title}</span>
+                                {song.key && (
+                                  <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">{song.key}</span>
+                                )}
+                                {song.inLibrary
+                                  ? <span className="text-xs bg-green-50 text-green-600 px-1.5 py-0.5 rounded">라이브러리 있음</span>
+                                  : <span className="text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded">라이브러리 없음</span>
+                                }
+                              </div>
+                              <p className="text-xs text-slate-400 mt-0.5">{song.reason}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!section.hasSongs && (
+                      <p className="px-4 py-3 text-xs text-slate-400">찬양 없음</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {aiRef.note && (
+                <div className="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500 flex items-start gap-2">
+                  <Sparkles size={13} className="text-purple-400 flex-shrink-0 mt-0.5" />
+                  {aiRef.note}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 악보 선택 팝업 ── */}
       {showScorePicker && (

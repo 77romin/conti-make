@@ -45,12 +45,12 @@ export default function AiContiGenerator({ onClose }) {
     setResult(null);
 
     try {
-      const data = await generateConti(input, library);
+      const data = await generateConti(input);
       data.sections = data.sections.map(section => ({
         ...section,
         songs: section.songs.map(song => ({
           ...song,
-          matchedScore: song.inLibrary ? findMatch(song.libraryTitle || song.title) : null,
+          matchedScore: findMatch(song.title),
         })),
       }));
       setResult(data);
@@ -94,7 +94,7 @@ export default function AiContiGenerator({ onClose }) {
     setAddedScoreIds([]);
 
     if (missing.length === 0) {
-      doCreateConti(baseIds, []);
+      doCreateConti(baseIds, [], result);
     } else {
       setMissingQueue(missing);
       setMissingIndex(0);
@@ -164,7 +164,7 @@ export default function AiContiGenerator({ onClose }) {
   function moveToNext(currentAddedIds) {
     const next = missingIndex + 1;
     if (next >= missingQueue.length) {
-      doCreateConti(baseScoreIds, currentAddedIds);
+      doCreateConti(baseScoreIds, currentAddedIds, result);
     } else {
       setMissingIndex(next);
       setSearchResults([]);
@@ -172,15 +172,25 @@ export default function AiContiGenerator({ onClose }) {
     }
   }
 
-  function doCreateConti(baseIds, addedIds) {
+  function doCreateConti(baseIds, addedIds, aiResult) {
+    // matchedScore에 imageData(수 MB base64)가 포함되어 있어
+    // localStorage 저장 전 반드시 제거해야 함
+    const aiRefToSave = {
+      ...aiResult,
+      sections: aiResult.sections.map(({ songs, ...section }) => ({
+        ...section,
+        songs: songs.map(({ matchedScore, ...song }) => song),
+      })),
+    };
     const newConti = saveConti({
-      title:       result.title || '새 콘티',
+      title:       aiResult.title || '새 콘티',
       date:        new Date().toISOString().slice(0, 10),
       worshipType: '주일예배',
       paperSize:   'A4',
       orientation: 'portrait',
       divisions:   2,
       scoreIds:    [...baseIds, ...addedIds],
+      aiRef:       aiRefToSave,
     });
     navigate(`/editor/${newConti.id}`);
     onClose();

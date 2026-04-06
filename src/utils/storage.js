@@ -66,6 +66,7 @@ export function saveConti(conti) {
     paperSize: conti.paperSize || 'A4',      // 'A4' | 'A3'
     divisions: conti.divisions || 4,          // 분할 수
     scoreIds: conti.scoreIds || [],           // 배치된 악보 ID 배열
+    aiRef:    conti.aiRef    || null,         // AI 생성 레퍼런스 (선택)
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
