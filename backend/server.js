@@ -19,7 +19,7 @@ const cors    = require('cors');
 const app  = express();
 const PORT = 3001;
 
-app.use(cors({ origin: 'http://localhost:5174' }));
+app.use(cors({ origin: /^http:\/\/localhost(:\d+)?$/ }));
 
 // 브라우저처럼 보이게 하는 공통 헤더
 const BROWSER_HEADERS = {
